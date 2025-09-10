@@ -1,43 +1,26 @@
 import speech_recognition as sr
 import subprocess
-import os
-import sys
 
-WAKE_WORD = "start aircursor"
+WAKE_WORD = "phantom"
 
-def listen_for_command():
+def listen_for_wake_word():
     recognizer = sr.Recognizer()
-    mic = sr.Microphone()
-
-    print("🎤 Voice Trigger Ready. Say 'start aircursor' to activate...")
-
-    with mic as source:
-        recognizer.adjust_for_ambient_noise(source)
-
-    while True:
+    with sr.Microphone() as source:
+        print("Listening for wake word...")
+        audio = recognizer.listen(source)
         try:
-            with mic as source:
-                print("Listening...")
-                audio = recognizer.listen(source, timeout=5)
-            command = recognizer.recognize_google(audio).lower()
-            print(f"You said: {command}")
-
-            if WAKE_WORD in command:
-                print("✅ Wake word detected! Launching AirCursor...")
-                launch_aircursor()
-                break
-
-        except sr.WaitTimeoutError:
-            continue
+            text = recognizer.recognize_google(audio).lower()
+            print("Heard:", text)
+            return WAKE_WORD in text
         except sr.UnknownValueError:
-            continue
+            return False
         except sr.RequestError as e:
-            print(f"API error: {e}")
-            break
-
-def launch_aircursor():
-    script_path = os.path.join(os.path.dirname(__file__), "main.py")
-    subprocess.Popen([sys.executable, script_path])
+            print("Could not request results:", e)
+            return False
 
 if __name__ == "__main__":
-    listen_for_command()
+    while True:
+        if listen_for_wake_word():
+            print("✅ Wake word detected! Launching AirCursor...")
+            subprocess.call(["python", "main.py"])
+            break
